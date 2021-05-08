@@ -63,12 +63,57 @@ if __name__ == '__main__':
     # 进入地铁tab
     dt_tab = bro.find_element_by_xpath('//div[@id="filter"]/ul[1]/li[2]/a')
     dt_tab.click()
-    # 
     
-
-
-
-
+    # 点击9号线
+    line9 = bro.find_element_by_xpath('//div[@id="filter"]/ul[3]/li[13]/a')
+    line9.click()
+    
+    #限定整租
+    full = bro.find_element_by_xpath('//div[@id="filter"]/ul[5]/li[3]/a')
+    full.click()
+    
+    #按价格排序
+    sorting = bro.find_element_by_xpath('//ul[@id="contentList"]/li[3]/a')
+    sorting.click()
+    
+    #取得房源链接列表
+    houses = bro.find_elements_by_xpath('//div[@id="content"]/div[1]/div[1]/div/a')
+    
+    ##测试第一个房子
+    h0 = houses[0]
+    h0.click()
+    handles = bro.window_handles
+    bro.switch_to.window(handles[1])
+    
+    #房名
+    this_name = bro.find_element_by_xpath('/html/body/div[3]/div[1]/div[3]/p').text
+    '''
+    右侧列表
+    '''
+    #租金
+    this_price = bro.find_element_by_xpath('//div[@id="aside"]/div[1]').text
+    #tag
+    this_tags = []
+    tags_elem = bro.find_elements_by_xpath('//div[@id="aside"]/p/i')
+    for i in tags_elem:
+        this_tags.append(i.text)
+    '''
+    下方基本信息列表
+    '''
+    #基本信息
+    this_basic_info = []
+    basic_info_elem = bro.find_elements_by_xpath('//div[@id="info"]/ul[1]/li')
+    for i in basic_info_elem:
+        this_basic_info.append(i.text)
+    basic_info_elem1 = bro.find_elements_by_xpath('//div[@id="info"]/ul[2]/li')
+    for i in basic_info_elem1:
+        this_basic_info.append(i.text)
+    #配套设施
+    this_facility = []
+    fac = bro.find_elements_by_xpath('/html/body/div[3]/div[1]/div[3]/div[3]/div[2]/ul/li')
+    for f in fac:
+        print(f.get_attribute('class'))
+        print(f.text)
 
 
 
