@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 class scraper:
     
-    def __init__(self, show_browser=False):
+    def __init__(self):
         return
     # 初始化浏览器对象，保证小量级爬取不会遇到滑块登录
     # 这里仍然没有使用ip代理池，后期添加功能
@@ -26,8 +26,8 @@ class scraper:
         # chrome_options 初始化选项
         chrome_options = webdriver.ChromeOptions()
         # 设置浏览器初始 位置x,y & 宽高x,y
-        #chrome_options.add_argument(f'--window-position={217},{172}')
-        chrome_options.add_argument(f'--window-size={1200},{1000}')
+        chrome_options.add_argument(f'--window-position={0},{0}')
+        chrome_options.add_argument(f'--window-size={1980},{1080}')
         # 关闭自动测试状态显示 // 会导致浏览器报：请停用开发者模式
         # window.navigator.webdriver还是返回True,当返回undefined时应该才可行。
         chrome_options.add_experimental_option("excludeSwitches", ['enable-automation'])
@@ -60,20 +60,21 @@ class scraper:
         h: 这个房子的WebElement对象
         '''
         this_house_info = {}
+        this_house_info['link'] = bro.current_url
         bro.implicitly_wait(3)
         scraper.close_ad(bro)
         
         while True:
             try:
                 h.click()
+                handles = bro.window_handles
+                bro.switch_to.window(handles[1])        
+                scraper.close_ad(bro)
                 break
             except Exception as e:
-                print('打开房子界面出错:',e)
+                print('打开房子界面出错，尝试关闭广告...\n',e)
                 scraper.close_ad(bro)
         
-        handles = bro.window_handles
-        bro.switch_to.window(handles[1])        
-        scraper.close_ad(bro)
         
         #房名
         this_name = bro.find_element_by_xpath('/html/body/div[3]/div[1]/div[3]/p').text
@@ -121,39 +122,18 @@ class scraper:
         return this_house_info        
 
     
-    def scrape_a_page(self, link):
-        bro = self.InitialBrowser(show_browser=True)
-        bro.get(link)
-        # 进入地铁tab
-        dt_tab = bro.find_element_by_xpath('//div[@id="filter"]/ul[1]/li[2]/a')
-        dt_tab.click()
-        
-        # 点击9号线
-        line9 = bro.find_element_by_xpath('//div[@id="filter"]/ul[3]/li[13]/a')
-        line9.click()       
+    def scrape_a_line(self, bro):
         
         ## 遍历地铁站
         stations = {}
         stations_elem = bro.find_elements_by_xpath('//div[@id="filter"]/ul[4]/li/a')
-        for i in range(1, len(stations_elem)):
-            print(i)
-            stations_elem = bro.find_elements_by_xpath('//div[@id="filter"]/ul[4]/li/a')
+        for i in tqdm(range(1, len(stations_elem))):
+            stations_elem = bro.find_elements_by_xpath('//div[@id="filter"]/ul[4]/li/a') #为防止StaleElementError
             station = stations_elem[i]
-            this_station = station.text
+            this_station = station.text            
+            print(this_station)
             station.click()
-            # for i in range(1,len(stations_elem)): # 第0个是不限地铁站
-            #     station = stations_elem[i]
-            #     stations.append(station.text)
-            #     station.click()
-            
-            #限定整租
-            full = bro.find_element_by_xpath('//div[@id="filter"]/ul[5]/li[3]/a')
-            full.click()
-            
-            #按价格排序
-            sorting = bro.find_element_by_xpath('//ul[@id="contentList"]/li[3]/a')
-            sorting.click()
-            
+                        
             #取得房源链接列表
             houses = bro.find_elements_by_xpath('//div[@id="content"]/div[1]/div[1]/div/div/p[1]/a')
             hs = []
@@ -172,6 +152,36 @@ class scraper:
             stations[this_station] = hs
         return stations
     
+    def scrape_a_page(self, link, show_browser=True):
+        bro = self.InitialBrowser(show_browser=show_browser)
+        bro.get(link)
+                
+        #限定整租
+        full = bro.find_element_by_xpath('//div[@id="filter"]/ul[5]/li[3]/a')
+        full.click()
+        
+        #按价格排序
+        sorting = bro.find_element_by_xpath('//ul[@id="contentList"]/li[3]/a')
+        sorting.click()
+        
+        # 进入地铁tab
+        dt_tab = bro.find_element_by_xpath('//div[@id="filter"]/ul[1]/li[2]/a')
+        dt_tab.click()
+        
+        # 地铁站
+        lines = {}
+        lines_elem = bro.find_elements_by_xpath('//div[@id="filter"]/ul[3]/li/a')
+        for i in range(1, len(lines_elem)): #第0个是不限地铁站
+            #lines_elem = bro.find_elements_by_xpath('//div[@id="filter"]/ul[3]/li/a') # 为防止StaleElementError
+            this_line = lines_elem[i]
+            this_line_name = this_line.text
+            print('开始爬取地铁线路：', this_line_name)
+            this_line.click()
+            this_line_info = self.scrape_a_line(bro)
+            lines[this_line_name] = this_line_info
+        
+        return lines
+    
     @staticmethod
     def close_ad(bro):
         #尝试关闭广告
@@ -179,7 +189,7 @@ class scraper:
             ad_button = bro.find_element_by_xpath('/html/body/div[3]/div[3]/div/div[2]/i')
             ad_button.click()
         except Exception as e:
-            print(e)
+            #print(e)
             pass
         return
 
@@ -187,7 +197,7 @@ class scraper:
 
 if __name__ == '__main__':
     pc = scraper()
-    stations = pc.scrape_a_page('https://sh.lianjia.com/zufang/')
+    stations = pc.scrape_a_page('https://sh.lianjia.com/zufang/', show_browser=True)
     
     
     # pc = scraper()
